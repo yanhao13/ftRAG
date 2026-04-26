@@ -332,67 +332,6 @@ def fit_models(train: FeaturePack, seed: int):
     return {"lgbm": ranker, "extra": extra, "hgb": hgb}
 
 
-def fit_aux_rankers(train: FeaturePack) -> dict[str, LGBMRanker]:
-    """Train the auxiliary LightGBM rankers used by the best chunk ensemble."""
-    assert train.y is not None
-    binary_y = (train.y > 0).astype(int)
-    graded_y = train.y.astype(int)
-
-    specs = {
-        "rank_bin_350": {
-            "y": binary_y,
-            "n_estimators": 350,
-            "learning_rate": 0.045,
-            "label_gain": [0, 1],
-            "random_state": 21,
-        },
-        "rank_bin_650": {
-            "y": binary_y,
-            "n_estimators": 650,
-            "learning_rate": 0.03,
-            "label_gain": [0, 1],
-            "random_state": 22,
-        },
-        "rank_gain011": {
-            "y": graded_y,
-            "n_estimators": 550,
-            "learning_rate": 0.035,
-            "label_gain": [0, 1, 1],
-            "random_state": 23,
-        },
-        "rank_gain012": {
-            "y": graded_y,
-            "n_estimators": 550,
-            "learning_rate": 0.035,
-            "label_gain": [0, 1, 2],
-            "random_state": 24,
-        },
-    }
-
-    rankers: dict[str, LGBMRanker] = {}
-    for name, spec in specs.items():
-        ranker = LGBMRanker(
-            objective="lambdarank",
-            metric="ndcg",
-            n_estimators=spec["n_estimators"],
-            learning_rate=spec["learning_rate"],
-            num_leaves=63,
-            max_depth=-1,
-            min_child_samples=20 if name.startswith("rank_gain") else 18,
-            subsample=0.9,
-            colsample_bytree=0.88 if name.startswith("rank_gain") else 0.9,
-            reg_alpha=0.02,
-            reg_lambda=0.1,
-            label_gain=spec["label_gain"],
-            random_state=spec["random_state"],
-            n_jobs=-1,
-            verbose=-1,
-        )
-        ranker.fit(train.x, spec["y"], group=train.groups)
-        rankers[name] = ranker
-    return rankers
-
-
 def grouped_predictions(pack: FeaturePack, models: dict, weights: dict[str, float]) -> dict[str, list[tuple[int, float]]]:
     raw_scores = {name: model.predict(pack.x).astype(np.float32) for name, model in models.items()}
     rankings: dict[str, list[tuple[int, float]]] = {}
@@ -426,11 +365,7 @@ def write_chunk_rankings(path_prefix: Path, queries: list[RankingQuery], ranking
     with path_prefix.with_suffix(".jsonl").open("w", encoding="utf-8") as jsonl_handle, path_prefix.with_suffix(".csv").open(
         "w", encoding="utf-8", newline=""
     ) as csv_handle:
-        writer = csv.DictWriter(
-            csv_handle,
-            fieldnames=["id", "ranking"],
-            lineterminator="\n",
-        )
+        writer = csv.DictWriter(csv_handle, fieldnames=["id", "ranking"])
         writer.writeheader()
         for query in queries:
             ranking = [idx for idx, _ in rankings[query.qid]][:top_k]
@@ -461,7 +396,6 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-k", type=int, default=10)
     parser.add_argument("--seed", type=int, default=13)
     parser.add_argument("--weights", default="lgbm=0.55,extra=0.35,hgb=0.10")
-    parser.add_argument("--train-aux-rankers", action="store_true")
     parser.add_argument("--predict-eval", action="store_true")
     parser.add_argument("--refresh-cache", action="store_true")
     return parser
@@ -485,9 +419,6 @@ def main() -> None:
     val_pack = load_or_build_cache(cache_dir / f"val_{len(val_queries)}_{args.candidate_char_limit}_{args.seed}.joblib", val_queries, True, args.refresh_cache)
     models = fit_models(train_pack, args.seed)
     joblib.dump(models, out_dir / "models.joblib")
-    if args.train_aux_rankers:
-        for name, model in fit_aux_rankers(train_pack).items():
-            joblib.dump(model, out_dir / f"{name}.joblib")
 
     weights = parse_weights(args.weights)
     val_rankings = grouped_predictions(val_pack, models, weights)

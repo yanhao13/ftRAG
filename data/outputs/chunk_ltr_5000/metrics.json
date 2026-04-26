@@ -1,0 +1,33 @@
+{
+  "config": {
+    "cache_dir": "outputs/chunk_ltr_cache",
+    "candidate_char_limit": 6000,
+    "chunk_dev": "chunk_ranking_kaggle_dev.jsonl",
+    "chunk_eval": "chunk_ranking_kaggle_eval.jsonl",
+    "metric_k": 5,
+    "output_dir": "outputs/chunk_ltr_5000",
+    "output_k": 10,
+    "predict_eval": true,
+    "refresh_cache": false,
+    "seed": 13,
+    "train_query_limit": 5000,
+    "val_queries": 500,
+    "weights": "lgbm=0.55,extra=0.35,hgb=0.10"
+  },
+  "table3_target": {
+    "MAP@5": 0.274,
+    "MRR@5": 0.587,
+    "nDCG@5": 0.371
+  },
+  "validation": {
+    "MAP@5": 0.34450166666666665,
+    "MRR@5": 0.5721666666666666,
+    "nDCG@5": 0.38535435295333137,
+    "queries": 500
+  },
+  "weights": {
+    "extra": 0.35,
+    "hgb": 0.1,
+    "lgbm": 0.55
+  }
+}

@@ -13,7 +13,6 @@ import csv
 import json
 import math
 import sys
-import warnings
 from collections import Counter
 from pathlib import Path
 
@@ -100,9 +99,7 @@ def predict_rankings(
         if isinstance(component, int):
             raw_scores[name] = pack.x[:, component].astype(np.float32)
         else:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", message="X does not have valid feature names.*")
-                raw_scores[name] = component.predict(pack.x).astype(np.float32)
+            raw_scores[name] = component.predict(pack.x).astype(np.float32)
 
     rankings: list[list[tuple[int, float]]] = []
     offset = 0
@@ -171,18 +168,10 @@ def write_chunk_rankings_rows(
     top_k: int,
 ) -> None:
     path_prefix.parent.mkdir(parents=True, exist_ok=True)
-    jsonl_path = path_prefix.with_suffix(".jsonl")
-    csv_path = path_prefix.with_suffix(".csv")
-    with jsonl_path.open("w", encoding="utf-8") as jsonl_handle, csv_path.open(
-        "w",
-        encoding="utf-8",
-        newline="",
+    with path_prefix.with_suffix(".jsonl").open("w", encoding="utf-8") as jsonl_handle, path_prefix.with_suffix(".csv").open(
+        "w", encoding="utf-8", newline=""
     ) as csv_handle:
-        writer = csv.DictWriter(
-            csv_handle,
-            fieldnames=["id", "ranking"],
-            lineterminator="\n",
-        )
+        writer = csv.DictWriter(csv_handle, fieldnames=["id", "ranking"])
         writer.writeheader()
         for query, ranking in zip(queries, rankings):
             row = {"id": query.qid, "ranking": json.dumps([idx for idx, _ in ranking][:top_k])}

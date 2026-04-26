@@ -414,11 +414,7 @@ def write_rankings(
     with jsonl_path.open("w", encoding="utf-8") as jsonl_handle, csv_path.open(
         "w", encoding="utf-8", newline=""
     ) as csv_handle:
-        writer = csv.DictWriter(
-            csv_handle,
-            fieldnames=["id", "task", "ranking"],
-            lineterminator="\n",
-        )
+        writer = csv.DictWriter(csv_handle, fieldnames=["id", "task", "ranking"])
         writer.writeheader()
         for query in queries:
             ranked_ids = [idx for idx, _ in rankings[query.qid]]

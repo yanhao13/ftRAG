@@ -1,0 +1,71 @@
+{
+  "base": {
+    "chunk": {
+      "MAP@5": 0.0,
+      "MRR@5": 0.0,
+      "nDCG@5": 0.0,
+      "queries": 1
+    },
+    "document": {
+      "MAP@5": 0.6894444444444444,
+      "MRR@5": 0.8,
+      "nDCG@5": 0.7406501749274612,
+      "queries": 5
+    }
+  },
+  "config": {
+    "adapter_path": "",
+    "batch_size": 1,
+    "candidate_char_limit": 800,
+    "chunk_dev": "chunk_ranking_kaggle_dev.jsonl",
+    "chunk_eval": "chunk_ranking_kaggle_eval.jsonl",
+    "chunk_output_k": 10,
+    "chunk_query_limit": 2,
+    "chunk_val_queries": 1,
+    "doc_dev": "document_ranking_kaggle_dev.jsonl",
+    "doc_eval": "document_ranking_kaggle_eval.jsonl",
+    "doc_query_limit": 30,
+    "doc_val_queries": 5,
+    "epochs": 1,
+    "eval_batch_size": 2,
+    "gradient_accumulation_steps": 8,
+    "learning_rate": 0.0002,
+    "log_every": 25,
+    "lora_alpha": 16,
+    "lora_dropout": 0.05,
+    "lora_r": 8,
+    "max_grad_norm": 1.0,
+    "max_length": 96,
+    "max_train_pairs": 120,
+    "metric_k": 5,
+    "model_name": "unsloth/Llama-3.2-1B-Instruct",
+    "negatives_per_positive": 2,
+    "output_dir": "outputs/llama3_lora_reranker_quick",
+    "predict_eval": false,
+    "seed": 13,
+    "skip_base_eval": false,
+    "skip_train": false,
+    "target_modules": "auto",
+    "val_fraction": 0.1,
+    "weight_decay": 0.01
+  },
+  "data": {
+    "pair_examples": 120,
+    "train_queries": 26,
+    "validation_queries": 6
+  },
+  "fine_tuned": {
+    "chunk": {
+      "MAP@5": 0.0,
+      "MRR@5": 0.0,
+      "nDCG@5": 0.0,
+      "queries": 1
+    },
+    "document": {
+      "MAP@5": 0.7119444444444445,
+      "MRR@5": 0.8,
+      "nDCG@5": 0.7522650025818218,
+      "queries": 5
+    }
+  }
+}
