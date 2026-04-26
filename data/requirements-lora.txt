@@ -1,0 +1,7 @@
+accelerate>=1.13.0
+joblib>=1.0.0
+lightgbm>=4.6.0
+peft>=0.19.1
+torch>=2.0.0
+tqdm>=4.0.0
+transformers>=5.0.0

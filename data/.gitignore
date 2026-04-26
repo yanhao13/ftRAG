@@ -1,0 +1,21 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+
+# Raw Kaggle data files are large and should be downloaded separately.
+chunk_ranking_kaggle_dev.jsonl
+chunk_ranking_kaggle_eval.jsonl
+document_ranking_kaggle_dev.jsonl
+document_ranking_kaggle_eval.jsonl
+
+# Keep only small final result artifacts in git.
+outputs/*
+!outputs/chunk_ltr_5000/
+outputs/chunk_ltr_5000/*
+!outputs/chunk_ltr_5000/metrics_best_ensemble.json
+!outputs/chunk_ltr_5000/chunk_eval_rankings_best_ensemble.csv
+!outputs/chunk_ltr_5000/chunk_eval_rankings_best_ensemble.jsonl
+
+# Heavy generated artifacts.
+outputs/**/*.joblib
+outputs/**/adapter/
