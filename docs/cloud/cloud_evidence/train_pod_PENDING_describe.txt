@@ -1,0 +1,136 @@
+Name:             lora-train-l4-rpdw9
+Namespace:        default
+Priority:         0
+Service Account:  ftrag-sa
+Node:             <none>
+Labels:           batch.kubernetes.io/controller-uid=ed8f0d37-e006-457e-81c6-e897bbb87e06
+                  batch.kubernetes.io/job-name=lora-train-l4
+                  controller-uid=ed8f0d37-e006-457e-81c6-e897bbb87e06
+                  job-name=lora-train-l4
+Annotations:      cloud.google.com/cluster_autoscaler_unhelpable_since: 2026-04-30T07:25:10+0000
+                  cloud.google.com/cluster_autoscaler_unhelpable_until: Inf
+                  gke-gcsfuse/cpu-limit: 0
+                  gke-gcsfuse/ephemeral-storage-limit: 0
+                  gke-gcsfuse/memory-limit: 0
+                  gke-gcsfuse/volumes: true
+Status:           Pending
+SeccompProfile:   RuntimeDefault
+IP:               
+IPs:              <none>
+Controlled By:    Job/lora-train-l4
+Init Containers:
+  gke-gcsfuse-sidecar:
+    Image:           us-central1-artifactregistry.gcr.io/gke-release/gke-release/gcs-fuse-csi-driver-sidecar-mounter:v1.22.0-gke.0@sha256:19690ea1ad7578861107b29aa7ecc2a61833edae69bac5a4ba9892ccaf4b0452
+    Port:            <none>
+    Host Port:       <none>
+    SeccompProfile:  RuntimeDefault
+    Args:
+      --v=5
+    Requests:
+      cpu:                250m
+      ephemeral-storage:  5Gi
+      memory:             256Mi
+    Environment:
+      NATIVE_SIDECAR:  TRUE
+    Mounts:
+      /gcsfuse-buffer from gke-gcsfuse-buffer (rw)
+      /gcsfuse-cache from gke-gcsfuse-cache (rw)
+      /gcsfuse-tmp from gke-gcsfuse-tmp (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-hcx5p (ro)
+Containers:
+  trainer:
+    Image:      us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:latest
+    Port:       <none>
+    Host Port:  <none>
+    Command:
+      python3
+      /app/lora_reranker.py
+    Args:
+      --doc-dev=/mnt/data/document_ranking_kaggle_dev.jsonl
+      --chunk-dev=/mnt/data/chunk_ranking_kaggle_dev.jsonl
+      --doc-eval=/mnt/data/document_ranking_kaggle_eval.jsonl
+      --chunk-eval=/mnt/data/chunk_ranking_kaggle_eval.jsonl
+      --output-dir=/mnt/adapters/llama3_lora_reranker
+      --epochs=1
+      --batch-size=1
+      --gradient-accumulation-steps=16
+      --doc-query-limit=200
+      --chunk-query-limit=20
+      --doc-val-queries=40
+      --chunk-val-queries=5
+      --max-train-pairs=1000
+      --max-length=192
+    Limits:
+      cpu:                8
+      ephemeral-storage:  20Gi
+      memory:             32Gi
+      nvidia.com/gpu:     1
+    Requests:
+      cpu:                8
+      ephemeral-storage:  20Gi
+      memory:             32Gi
+      nvidia.com/gpu:     1
+    Environment:          <none>
+    Mounts:
+      /mnt/adapters from adapters (rw)
+      /mnt/data from data (ro)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-hcx5p (ro)
+Conditions:
+  Type           Status
+  PodScheduled   False 
+Volumes:
+  gke-gcsfuse-buffer:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     
+    SizeLimit:  <unset>
+  gke-gcsfuse-cache:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     
+    SizeLimit:  <unset>
+  gke-gcsfuse-tmp:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     
+    SizeLimit:  <unset>
+  data:
+    Type:              CSI (a Container Storage Interface (CSI) volume source)
+    Driver:            gcsfuse.csi.storage.gke.io
+    FSType:            
+    ReadOnly:          true
+    VolumeAttributes:      bucketName=ftrag-data-ml-cloud-hw2-250147
+                           mountOptions=implicit-dirs,file-cache:max-size-mb:2048
+  adapters:
+    Type:              CSI (a Container Storage Interface (CSI) volume source)
+    Driver:            gcsfuse.csi.storage.gke.io
+    FSType:            
+    ReadOnly:          false
+    VolumeAttributes:      bucketName=ftrag-adapters-ml-cloud-hw2-250147
+                           mountOptions=implicit-dirs
+  kube-api-access-hcx5p:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              cloud.google.com/gke-accelerator=nvidia-l4
+                             cloud.google.com/gke-accelerator-count=1
+Tolerations:                 cloud.google.com/gke-accelerator=nvidia-l4:NoSchedule
+                             cloud.google.com/machine-family:NoSchedule op=Exists
+                             kubernetes.io/arch=amd64:NoSchedule
+                             node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+                             nvidia.com/gpu=present:NoSchedule
+                             nvidia.com/gpu:NoSchedule op=Exists
+Events:
+  Type     Reason             Age                   From                                   Message
+  ----     ------             ----                  ----                                   -------
+  Warning  FailedScheduling   12m                   gke.io/optimize-utilization-scheduler  0/1 nodes are available: 1 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling.
+  Normal   TriggeredScaleUp   11m                   cluster-autoscaler                     Pod triggered scale-up: [{https://www.googleapis.com/compute/v1/projects/ml-cloud-hw2-250147/zones/us-central1-c/instanceGroups/nap-g5s3rx3g-temporary-mig-1de8x0j7-async-2 0->1 (max: 1000)}]
+  Warning  FailedScaleUp      10m                   cluster-autoscaler                     Node scale up in zones us-central1-c associated with this pod failed: GCE quota exceeded. Pod is at risk of not being scheduled.
+  Warning  FailedScheduling   10m (x2 over 11m)     gke.io/optimize-utilization-scheduler  0/2 nodes are available: 2 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+  Warning  FailedScheduling   10m (x7 over 11m)     gke.io/optimize-utilization-scheduler  0/2 nodes are available: 1 node(s) didn't match Pod's node affinity/selector, 1 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+  Warning  FailedScheduling   9m6s (x4 over 9m51s)  gke.io/optimize-utilization-scheduler  0/2 nodes are available: 1 node(s) didn't match Pod's node affinity/selector, 1 node(s) were unschedulable. no new claims to deallocate, preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+  Normal   TriggeredScaleUp   5m50s                 cluster-autoscaler                     Pod triggered scale-up: [{https://www.googleapis.com/compute/v1/projects/ml-cloud-hw2-250147/zones/us-central1-a/instanceGroups/nap-13q3j1gn-temporary-mig-1fa91ahc-async-0 0->1 (max: 1000)}]
+  Normal   NotTriggerScaleUp  4m38s (x3 over 10m)   cluster-autoscaler                     Pod didn't trigger scale-up: 8 node(s) didn't match Pod's node affinity/selector, 3 in backoff after failed scale-up
+  Warning  FailedScaleUp      4m38s                 cluster-autoscaler                     Node scale up in zones us-central1-a associated with this pod failed: GCE quota exceeded. Pod is at risk of not being scheduled.
+  Warning  FailedScheduling   3m59s                 gke.io/optimize-utilization-scheduler  0/1 nodes are available: 1 node(s) didn't match Pod's node affinity/selector. no new claims to deallocate, preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling.

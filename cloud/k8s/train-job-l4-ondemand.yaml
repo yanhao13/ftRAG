@@ -1,0 +1,74 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: lora-train-l4
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+    spec:
+      serviceAccountName: ftrag-sa
+      restartPolicy: Never
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-l4
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Equal
+          value: present
+          effect: NoSchedule
+      containers:
+        - name: trainer
+          image: us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:latest
+          imagePullPolicy: Always
+          command: ["python3", "/app/lora_reranker.py"]
+          args:
+            - "--doc-dev=/mnt/data/document_ranking_kaggle_dev.jsonl"
+            - "--chunk-dev=/mnt/data/chunk_ranking_kaggle_dev.jsonl"
+            - "--doc-eval=/mnt/data/document_ranking_kaggle_eval.jsonl"
+            - "--chunk-eval=/mnt/data/chunk_ranking_kaggle_eval.jsonl"
+            - "--output-dir=/mnt/adapters/llama3_lora_reranker"
+            - "--epochs=1"
+            - "--batch-size=1"
+            - "--gradient-accumulation-steps=16"
+            - "--doc-query-limit=200"
+            - "--chunk-query-limit=20"
+            - "--doc-val-queries=40"
+            - "--chunk-val-queries=5"
+            - "--max-train-pairs=1000"
+            - "--max-length=192"
+          resources:
+            requests:
+              cpu: "8"
+              memory: "32Gi"
+              ephemeral-storage: "20Gi"
+            limits:
+              cpu: "8"
+              memory: "32Gi"
+              nvidia.com/gpu: "1"
+              ephemeral-storage: "20Gi"
+          volumeMounts:
+            - name: data
+              mountPath: /mnt/data
+              readOnly: true
+            - name: adapters
+              mountPath: /mnt/adapters
+      volumes:
+        - name: data
+          csi:
+            driver: gcsfuse.csi.storage.gke.io
+            readOnly: true
+            volumeAttributes:
+              bucketName: ftrag-data-ml-cloud-hw2-250147
+              mountOptions: "implicit-dirs,file-cache:max-size-mb:2048"
+        - name: adapters
+          csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: ftrag-adapters-ml-cloud-hw2-250147
+              mountOptions: "implicit-dirs"

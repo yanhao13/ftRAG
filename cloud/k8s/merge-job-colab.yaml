@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: lora-merge
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+    spec:
+      serviceAccountName: ftrag-sa
+      restartPolicy: Never
+      containers:
+        - name: merger
+          image: us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:v2
+          imagePullPolicy: Always
+          command: ["python3", "/app/merge_lora_offline.py"]
+          args:
+            - "--base-model=unsloth/Llama-3.2-1B-Instruct"
+            - "--adapter-path=/mnt/adapters/llama3_lora_reranker_colab/adapter"
+            - "--merged-output=/mnt/merged/llama3_merged_colab"
+            - "--dtype=float16"
+          resources:
+            requests:
+              cpu: "2"
+              memory: "8Gi"
+              ephemeral-storage: "4Gi"
+            limits:
+              cpu: "2"
+              memory: "8Gi"
+              ephemeral-storage: "4Gi"
+          volumeMounts:
+            - name: adapters
+              mountPath: /mnt/adapters
+              readOnly: true
+            - name: merged
+              mountPath: /mnt/merged
+      volumes:
+        - name: adapters
+          csi:
+            driver: gcsfuse.csi.storage.gke.io
+            readOnly: true
+            volumeAttributes:
+              bucketName: ftrag-adapters-ml-cloud-hw2-250147
+              mountOptions: "implicit-dirs"
+        - name: merged
+          csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: ftrag-merged-ml-cloud-hw2-250147
+              mountOptions: "implicit-dirs"

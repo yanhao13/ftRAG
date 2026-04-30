@@ -1,0 +1,27 @@
+{
+  "artifacts": {
+    "validation_rankings": "/mnt/merged/chunk_ltr_5000/validation_rankings_best_ensemble"
+  },
+  "table3_delta": {
+    "MAP@5": 0.11676722222222219,
+    "MRR@5": 0.05256666666666632,
+    "nDCG@5": 0.06097520533554052
+  },
+  "table3_target": {
+    "MAP@5": 0.274,
+    "MRR@5": 0.587,
+    "nDCG@5": 0.371
+  },
+  "validation": {
+    "MAP@5": 0.3907672222222222,
+    "MRR@5": 0.6395666666666663,
+    "nDCG@5": 0.4319752053355405,
+    "queries": 500
+  },
+  "validation_duplicate_qids": 51,
+  "validation_metric": "row_level_duplicate_safe",
+  "weights": {
+    "extra": 0.15,
+    "rank_gain011": 0.85
+  }
+}

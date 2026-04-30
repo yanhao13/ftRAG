@@ -1,0 +1,10 @@
+    "nDCG@5": 0.4319752053355405,
+    "queries": 500
+  },
+  "validation_duplicate_qids": 51,
+  "validation_metric": "row_level_duplicate_safe",
+  "weights": {
+    "extra": 0.15,
+    "rank_gain011": 0.85
+  }
+}

@@ -1,0 +1,153 @@
+Name:             lora-merge-wqdhf
+Namespace:        default
+Priority:         0
+Service Account:  ftrag-sa
+Node:             gk3-ftrag-cluster-pool-3-65b71495-2khb/10.128.15.207
+Start Time:       Thu, 30 Apr 2026 10:02:21 -0400
+Labels:           batch.kubernetes.io/controller-uid=4da1fefd-a60b-4b2f-9910-f7e1b19366a6
+                  batch.kubernetes.io/job-name=lora-merge
+                  controller-uid=4da1fefd-a60b-4b2f-9910-f7e1b19366a6
+                  job-name=lora-merge
+                  topology.kubernetes.io/region=us-central1
+                  topology.kubernetes.io/zone=us-central1-c
+Annotations:      autopilot.gke.io/resource-adjustment:
+                    {"input":{"initContainers":[{"requests":{"cpu":"250m","ephemeral-storage":"5Gi","memory":"256Mi"},"name":"gke-gcsfuse-sidecar"}],"containe...
+                  autopilot.gke.io/warden-version: 35.15.0-gke.1
+                  gke-gcsfuse/cpu-limit: 0
+                  gke-gcsfuse/ephemeral-storage-limit: 0
+                  gke-gcsfuse/memory-limit: 0
+                  gke-gcsfuse/volumes: true
+Status:           Succeeded
+SeccompProfile:   RuntimeDefault
+IP:               10.75.129.17
+IPs:
+  IP:           10.75.129.17
+Controlled By:  Job/lora-merge
+Init Containers:
+  gke-gcsfuse-sidecar:
+    Container ID:    containerd://0bddd7c86384d7428e5679c128f4e85d598f01663bef6d974fa2c1aa234d5a2a
+    Image:           us-central1-artifactregistry.gcr.io/gke-release/gke-release/gcs-fuse-csi-driver-sidecar-mounter:v1.22.0-gke.0@sha256:19690ea1ad7578861107b29aa7ecc2a61833edae69bac5a4ba9892ccaf4b0452
+    Image ID:        us-central1-artifactregistry.gcr.io/gke-release/gke-release/gcs-fuse-csi-driver-sidecar-mounter@sha256:19690ea1ad7578861107b29aa7ecc2a61833edae69bac5a4ba9892ccaf4b0452
+    Port:            <none>
+    Host Port:       <none>
+    SeccompProfile:  RuntimeDefault
+    Args:
+      --v=5
+    State:          Terminated
+      Reason:       Completed
+      Exit Code:    0
+      Started:      Thu, 30 Apr 2026 10:03:02 -0400
+      Finished:     Thu, 30 Apr 2026 10:04:36 -0400
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      ephemeral-storage:  5Gi
+    Requests:
+      cpu:                250m
+      ephemeral-storage:  5Gi
+      memory:             256Mi
+    Environment:
+      NATIVE_SIDECAR:  TRUE
+    Mounts:
+      /gcsfuse-buffer from gke-gcsfuse-buffer (rw)
+      /gcsfuse-cache from gke-gcsfuse-cache (rw)
+      /gcsfuse-tmp from gke-gcsfuse-tmp (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-h4bpt (ro)
+Containers:
+  merger:
+    Container ID:  containerd://b537ff08a9334511ae8c0cef93a78b037ab3faa816449efaac99b4c375ae3772
+    Image:         us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:v2
+    Image ID:      us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer@sha256:c43998bf6328b777ddea598580a827140a33ea8348a7b65a668e4417a3b6ecd7
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      python3
+      /app/merge_lora_offline.py
+    Args:
+      --base-model=unsloth/Llama-3.2-1B-Instruct
+      --adapter-path=/mnt/adapters/llama3_lora_reranker_colab/adapter
+      --merged-output=/mnt/merged/llama3_merged_colab
+      --dtype=float16
+    State:          Terminated
+      Reason:       Completed
+      Exit Code:    0
+      Started:      Thu, 30 Apr 2026 10:03:06 -0400
+      Finished:     Thu, 30 Apr 2026 10:04:19 -0400
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      cpu:                2
+      ephemeral-storage:  4Gi
+      memory:             8Gi
+    Requests:
+      cpu:                2
+      ephemeral-storage:  4Gi
+      memory:             8Gi
+    Environment:          <none>
+    Mounts:
+      /mnt/adapters from adapters (ro)
+      /mnt/merged from merged (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-h4bpt (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   False 
+  Initialized                 True 
+  Ready                       False 
+  ContainersReady             False 
+  PodScheduled                True 
+Volumes:
+  gke-gcsfuse-tmp:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     
+    SizeLimit:  <unset>
+  gke-gcsfuse-buffer:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     
+    SizeLimit:  <unset>
+  gke-gcsfuse-cache:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     
+    SizeLimit:  <unset>
+  adapters:
+    Type:              CSI (a Container Storage Interface (CSI) volume source)
+    Driver:            gcsfuse.csi.storage.gke.io
+    FSType:            
+    ReadOnly:          true
+    VolumeAttributes:      bucketName=ftrag-adapters-ml-cloud-hw2-250147
+                           mountOptions=implicit-dirs
+  merged:
+    Type:              CSI (a Container Storage Interface (CSI) volume source)
+    Driver:            gcsfuse.csi.storage.gke.io
+    FSType:            
+    ReadOnly:          false
+    VolumeAttributes:      bucketName=ftrag-merged-ml-cloud-hw2-250147
+                           mountOptions=implicit-dirs
+  kube-api-access-h4bpt:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 kubernetes.io/arch=amd64:NoSchedule
+                             node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason            Age                    From                                   Message
+  ----     ------            ----                   ----                                   -------
+  Warning  FailedScheduling  3m28s                  gke.io/optimize-utilization-scheduler  0/1 nodes are available: 1 node(s) were unschedulable. no new claims to deallocate, preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling.
+  Normal   TriggeredScaleUp  3m26s                  cluster-autoscaler                     Pod triggered scale-up: [{https://www.googleapis.com/compute/v1/projects/ml-cloud-hw2-250147/zones/us-central1-c/instanceGroups/gk3-ftrag-cluster-pool-3-65b71495-grp 0->1 (max: 1000)}]
+  Warning  FailedScheduling  2m57s                  gke.io/optimize-utilization-scheduler  0/2 nodes are available: 1 node(s) had untolerated taint(s), 1 node(s) were unschedulable. no new claims to deallocate, preemption: 0/2 nodes are available: 2 Preemption is not helpful for scheduling.
+  Normal   Scheduled         2m50s                  gke.io/optimize-utilization-scheduler  Successfully assigned default/lora-merge-wqdhf to gk3-ftrag-cluster-pool-3-65b71495-2khb
+  Warning  FailedMount       2m34s (x6 over 2m50s)  kubelet                                MountVolume.SetUp failed for volume "adapters" : kubernetes.io/csi: mounter.SetUpAt failed to get CSI client: driver name gcsfuse.csi.storage.gke.io not found in the list of registered CSI drivers
+  Warning  FailedMount       2m34s (x6 over 2m50s)  kubelet                                MountVolume.SetUp failed for volume "merged" : kubernetes.io/csi: mounter.SetUpAt failed to get CSI client: driver name gcsfuse.csi.storage.gke.io not found in the list of registered CSI drivers
+  Normal   Pulling           2m10s                  kubelet                                Pulling image "us-central1-artifactregistry.gcr.io/gke-release/gke-release/gcs-fuse-csi-driver-sidecar-mounter:v1.22.0-gke.0@sha256:19690ea1ad7578861107b29aa7ecc2a61833edae69bac5a4ba9892ccaf4b0452"
+  Normal   Pulled            2m9s                   kubelet                                Successfully pulled image "us-central1-artifactregistry.gcr.io/gke-release/gke-release/gcs-fuse-csi-driver-sidecar-mounter:v1.22.0-gke.0@sha256:19690ea1ad7578861107b29aa7ecc2a61833edae69bac5a4ba9892ccaf4b0452" in 1.005s (1.005s including waiting). Image size: 41661890 bytes.
+  Normal   Created           2m9s                   kubelet                                Container created
+  Normal   Started           2m9s                   kubelet                                Container started
+  Normal   Pulling           2m8s                   kubelet                                Pulling image "us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:v2"
+  Normal   Pulled            2m6s                   kubelet                                Successfully pulled image "us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:v2" in 2.301s (2.301s including waiting). Image size: 5382862947 bytes.
+  Normal   Created           2m5s                   kubelet                                Container created
+  Normal   Started           2m5s                   kubelet                                Container started
+  Normal   Killing           40s                    kubelet                                Stopping container gke-gcsfuse-sidecar
