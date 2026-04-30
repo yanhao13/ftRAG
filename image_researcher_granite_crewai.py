@@ -1,0 +1,476 @@
+"""
+requirements: crewai==0.201.1, crewai-tools==0.75.0, ollama
+"""
+import anyio
+import asyncio
+import logging
+import os
+from typing import Optional, Callable, Awaitable, List
+
+from crewai import Crew, Process, Agent, Task, LLM
+from crewai.tasks.task_output import TaskOutput
+from crewai.tools import tool
+from fastapi import Request
+from ollama import AsyncClient as OllamaClient
+from open_webui.routers import retrieval
+from open_webui.models.knowledge import KnowledgeTable
+from open_webui import config as open_webui_config
+from pydantic import BaseModel, Field
+
+os.environ["CREWAI_DISABLE_TELEMETRY"] = "true"
+
+####################
+# Prompts
+####################
+
+DEFAULT_ITEM_IDENTIFIER_GOAL = """The following is the description of an image.
+Please enumerate in detail all the components of the image."""
+
+DEFAULT_INSTRUCTION = f"{DEFAULT_ITEM_IDENTIFIER_GOAL} For every item or concept described in the image, find me at least 2 relevant\
+    articles that describe the concept in detail, for educational purposes and teach me about them, citing references."
+
+DEAULT_IMAGE_VERBALIZER_PROMPT = """Analyze the following image and provide a detailed description. Your response should cover the following aspects:
+    1. Image Overview: Begin with a brief summary of the entire image. Describe the scene, the context, and the general mood or atmosphere it conveys.
+    2. Objects and Entities: Identify and describe each significant object or entity present in the image. Include details such as: 
+         - Name/Type: What is the object? If it's a person, animal, or inanimate object, mention its category.
+         - Appearance: Describe its shape, size, and any distinctive features.
+         - Color: Note the dominant and secondary colors.
+         - Position: Where in the image is the object located? Is it central, off to the side, or in the background/foreground?
+    3. Interrelations: Explain how the objects interact with each other or the environment. Are they in motion? Is there any evidence of interaction between them? 
+    4. Patterns and Textures: Identify any repetitive patterns or textures present in the image. 
+    5. Background and Environment: Describe the setting or backdrop of the image. Is it a natural landscape, an urban scene, an abstract space, or something else? 
+    6. Symbols or Indicators: If there are any symbols, signs, text, or other indicators that could provide additional context, please mention them.
+    7. Technical Elements (for diagrams or technical images): If applicable, describe the graphical elements, including lines, shapes, annotations, and any scaling indicators. 
+Your goal is to create a thorough, nuanced description that another LLM could use as a starting point for further research or analysis about the content, context, and composition of the image.
+Be sure to describe ALL prominent aspects of this image; do not miss any.
+"""
+
+ITEM_IDENTIFIER_PROMPT = """
+    You are an item identifier.You will be given a description of an image, and your job is to identify all items and concepts that are part of the 
+    image that will need to be researched in order to accomplish the goal.
+    You will limit the number of items to the {item_limit} most important items pertaining to the image that will accomplish the goal.
+    You will not perform the research yourself, but will work with a helper who will perform the research. The helper has the following capabilities:
+    1. General generative AI capabilities.
+    2. Search the internet
+    3. Search the user's document store
+    When giving out research tasks, please constrain the instructions to be within what the helper is capable of, and nothing beyond."""
+
+ASSISTANT_PROMPT = """
+You are a research assistant that will use tools to find information on a given topic.
+- Make sure to provide a thorough answer that directly addresses the message you received.
+- You have access to the following tools. Only use these available tools and do not attempt to use anything not listed - this will cause an error.
+- When you are using knowledge and web search tools to complete the instruction, answer the instruction only using the results from the search; do no supplement with your own knowledge.
+- Never answer the instruction using links to URLs that were not discovered during the use of your search tools. Only respond with document links and URLs that your tools returned to you.
+- Make sure to provide the URL for the page you are using as your source or the document name.
+- If a tool error occurs in Observation (e.g., unknown action, invalid input), correct the mistake and try again.
+- Use at most one tool per step. You may perform multiple steps if needed.
+    """
+
+SEARCH_QUERY_GENERATION_PROMPT = """You are a search query generation assistant.
+Your task is to take a long, detailed user request and produce a single, optimized search query that fully captures the user’s information need.
+
+Instructions:
+
+* Identify the main topic and the most important subtopics or keywords.
+* Write one clear, specific, and comprehensive search query that covers all key aspects.
+* Include relevant keywords, entities, or technologies.
+* Use the + operator to boost important concepts.
+* Do not produce multiple queries or lists; return exactly one optimized query.
+
+Example Input:
+“strategies for launching a new productivity mobile app, including research, competitor analysis, onboarding, analytics, marketing, testing, and rollout.”
+
+Expected Output:
+"+strategies for launching +productivity mobile apps 2025 marketing onboarding analytics --QDF=5"
+  """
+
+class Pipe:
+    class Valves(BaseModel):
+        TASK_MODEL_ID: str = Field(default="ollama/ibm/granite4:tiny-h")
+        VISION_MODEL_ID: str = Field(
+            default="ollama/granite3.2-vision:2b"
+        )
+        OPENAI_API_URL: str = Field(default=open_webui_config.OLLAMA_BASE_URL or "http://localhost:11434")
+        OPENAI_API_KEY: str = Field(default="ollama")
+        VISION_API_URL: str = Field(default=open_webui_config.OLLAMA_BASE_URL or "http://localhost:11434")
+        MODEL_TEMPERATURE: float = Field(default=0)
+        MAX_RESEARCH_CATEGORIES: int = Field(default=4)
+        MAX_RESEARCH_ITERATIONS: int = Field(default=3)
+        INCLUDE_KNOWLEDGE_SEARCH: bool = Field(default=False)
+        RUN_PARALLEL_TASKS: bool = Field(default=False)
+
+
+    def get_provider_models(self):
+        return [
+            {"id": self.valves.TASK_MODEL_ID, "name": self.valves.TASK_MODEL_ID},
+        ]
+
+    def __init__(self):
+        self.type = "pipe"
+        self.id = "granite_image_researcher"
+        self.name = "Granite Image Researcher Agent"
+        self.valves = self.Valves()
+
+    def is_open_webui_request(self, body):
+        """
+        Checks if the request is an Open WebUI task, as opposed to a user task
+        """
+        message = str(body[-1])
+
+        prompt_templates = {
+            "### Task",
+            open_webui_config.DEFAULT_RAG_TEMPLATE.replace("\n", "\\n"),
+            open_webui_config.DEFAULT_TITLE_GENERATION_PROMPT_TEMPLATE.replace(
+                "\n", "\\n"
+            ),
+            open_webui_config.DEFAULT_TAGS_GENERATION_PROMPT_TEMPLATE.replace(
+                "\n", "\\n"
+            ),
+            open_webui_config.DEFAULT_IMAGE_PROMPT_GENERATION_PROMPT_TEMPLATE.replace(
+                "\n", "\\n"
+            ),
+            open_webui_config.DEFAULT_QUERY_GENERATION_PROMPT_TEMPLATE.replace(
+                "\n", "\\n"
+            ),
+            open_webui_config.DEFAULT_AUTOCOMPLETE_GENERATION_PROMPT_TEMPLATE.replace(
+                "\n", "\\n"
+            ),
+            open_webui_config.DEFAULT_TOOLS_FUNCTION_CALLING_PROMPT_TEMPLATE.replace(
+                "\n", "\\n"
+            ),
+        }
+
+        for template in prompt_templates:
+            if template is not None and template[:50] in message:
+                return True
+
+        return False
+
+    async def emit_event_safe(self, message):
+        event_data = {
+            "type": "message",
+            "data": {"content": message + "\n"},
+        }
+        try:
+            await self.event_emitter(event_data)
+        except Exception as e:
+            logging.error(f"Error emitting event: {e}")
+    
+    @staticmethod
+    def _safe_schedule(coro: asyncio.coroutines):
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(coro)  # we're already in an event loop
+        except RuntimeError:
+            # no running loop (sync context), so create one just for this
+            asyncio.run(coro)
+
+    def log_task_completion(self, output: TaskOutput):
+        self._safe_schedule(self.emit_event_safe(f"Completed Task: {output.summary}"))
+
+    def log_research_items(self, output: TaskOutput):
+        items = [i.item_name for i in output.pydantic.items]
+        self._safe_schedule(self.emit_event_safe(f"Research Items Identified: {items}"))
+
+
+    async def pipe(
+        self,
+        body,
+        __user__: Optional[dict],
+        __request__: Request,
+        __event_emitter__: Callable[[dict], Awaitable[None]] = None,
+    ) -> str:
+
+        # Grab env variables
+        default_model = self.valves.TASK_MODEL_ID
+        base_url = self.valves.OPENAI_API_URL
+        api_key = self.valves.OPENAI_API_KEY
+        vision_model = self.valves.VISION_MODEL_ID
+        vision_url = self.valves.VISION_API_URL
+        model_temp = self.valves.MODEL_TEMPERATURE
+        max_research_categories = self.valves.MAX_RESEARCH_CATEGORIES
+        max_research_iters = self.valves.MAX_RESEARCH_ITERATIONS
+        include_knoweldge_search = self.valves.INCLUDE_KNOWLEDGE_SEARCH
+        run_parallel_tasks = self.valves.RUN_PARALLEL_TASKS
+        self.event_emitter = __event_emitter__
+        self.owui_request = __request__
+        self.user = __user__
+
+        ##################
+        # Crew LLM Config
+        ##################
+        class ResearchItem(BaseModel):
+            item_name: str
+            research_instructions: str
+
+        class ResearchItems(BaseModel):
+            items: List[ResearchItem]
+
+        llm = LLM(
+            model=default_model,
+            base_url=base_url,
+            api_key=api_key,
+            temperature=model_temp,
+        )
+
+        ##################
+        # Check if this request is utility call from OpenWebUI
+        ##################
+        if self.is_open_webui_request(body["messages"]):
+            print("Is open webui request")
+            reply = await anyio.to_thread.run_sync(lambda: llm.call([body["messages"][-1]]))
+            return reply
+
+        ##################
+        # Tool Definitions
+        ##################
+        @tool("WebSearch")
+        def do_web_search(query: str) -> str:
+            """Use this to search the internet. 
+
+            Provide a **search engine–optimized query string** as the parameter. 
+            Your goal is to generate a single, well-structured query that could be directly entered into a search engine (e.g., Google, Bing) to retrieve the most relevant results. 
+
+            ✅ **How to construct the query**:
+            - Identify the **core topic** or entity (e.g., product, technology, event, person, regulation).
+            - Add **specific attributes, goals, or context** (e.g., “best practices”, “latest update”, “integration guide”, “release date”).
+            - Include **relevant keywords and modifiers** to narrow the scope (e.g., location, time frame, use case, version).
+            - Use **natural phrasing** or **keyword-style phrasing** depending on what would perform best in search engines. 
+            Examples:
+                - Natural language: “What are the latest tax filing deadlines for small businesses in California 2025”
+                - Keyword style: “California 2025 small business tax filing deadlines”
+
+            📝 **Examples**:
+            - “EU AI Act regulatory timeline 2025 summary”
+            - “integration guide Stripe API Python 2025”
+            - “best laptop for machine learning reviews October 2025”
+
+            The returned string should be the **final optimized query**, not an explanation.
+            """
+            search_results = []
+
+            results = retrieval.search_web(
+                request=self.owui_request,
+                engine=self.owui_request.app.state.config.WEB_SEARCH_ENGINE,
+                query=query,
+            )
+            for result in results:
+                search_results.append({"Title": result.title, "URL": result.link, "Text": result.snippet})
+ 
+            return str(search_results)
+
+        @tool("Knowledge Search")
+        def do_knowledge_search(search_instruction: str) -> str:
+            """Use this tool if you need to obtain information that is unique to the user and cannot be found on the internet.
+            Given an instruction on what knowledge you need to find, search the user's documents for information particular to them, their projects, and their domain.
+            This is simple document search, it cannot perform any other complex tasks.
+            This will not give you any results from the internet. Do not assume it can retrieve the latest news pertaining to any subject.
+            """
+            if not search_instruction:
+                return "Please provide a search query."
+
+            # First get all the user's knowledge bases associated with the model
+            knowledge_item_list = KnowledgeTable().get_knowledge_bases()
+            if len(knowledge_item_list) == 0:
+                return "You don't have any knowledge bases."
+            collection_list = []
+            for item in knowledge_item_list:
+                collection_list.append(item.id)
+
+            collection_form = retrieval.QueryCollectionsForm(
+                collection_names=collection_list, query=search_instruction
+            )
+
+            response = retrieval.query_collection_handler(
+                request=self.owui_request, form_data=collection_form, user=self.user
+            )
+            messages = ""
+            for entries in response["documents"]:
+                for line in entries:
+                    messages += line
+
+            return messages
+
+        #########################
+        # Crew Agent Config
+        #########################
+
+        # Item Identifier Crew
+        item_identifier = Agent(
+            role="Item Identifier",
+            goal="Identify which concepts that are in a described image need to be researched in order to accomplish the goal.",
+            backstory=ITEM_IDENTIFIER_PROMPT,
+            llm=llm,
+            use_system_prompt=False,
+            verbose=True,
+        )
+        identification_task = Task(
+            description="Thoroughly identify all items and concepts that are part of the image that will need to be researched in order to accomplish the goal. Goal: {goal} \n Image Description: {image_description}",
+            agent=item_identifier,
+            expected_output="A list of items and concepts that need to be researched in order to accomplish the goal.",
+            output_pydantic=ResearchItems,
+            callback=self.log_research_items
+        )
+        identifier_crew = Crew(
+            agents=[item_identifier],
+            tasks=[identification_task],
+            process=Process.sequential,
+            share_crew=False,
+            verbose=True,
+        )
+
+        # Research Crew
+        available_tools = [do_web_search]
+        if include_knoweldge_search:
+            available_tools.append(do_knowledge_search)
+        researcher = Agent(
+            role="Researcher",
+            goal="You will be given a step/instruction to accomplish. Fully answer the instruction/question using document search or web search tools as necessary.",
+            backstory=ASSISTANT_PROMPT,
+            llm=llm,
+            use_system_prompt=False,
+            verbose=True,
+            max_iter=max_research_iters,
+            tools=available_tools,
+        )
+        research_task = Task(
+            description="Fulfill the instruction given. {item_name} {research_instructions}",  # Keep in mind the previously gathered data from previous steps: {previously_executed_steps}',
+            agent=researcher,
+            expected_output="Information that directly answers the instruction given. If your answer references websites or documents, provide in-line citations in the form of hyperlinks for every reference.",
+            callback=self.log_task_completion
+        )
+        research_crew = Crew(
+            agents=[researcher],
+            tasks=[research_task],
+            share_crew=False,
+            verbose=True,
+        )
+
+        #########################
+        # Begin Agentic Workflow
+        #########################
+        chat_history_text = ""
+        image_info = []
+        latest_instruction = ""
+
+        def identify_message_content(message_content):
+            """
+            This function serves the purpose of parsing out text vs image content in the chat history.
+            """
+            content = {"text": "", "images": []}
+            if type(message_content) == str:
+                content["text"] = message_content
+
+            else:
+                for mc in message_content:
+                    if mc["type"] == "image_url":
+                        content["images"].append(mc)
+                    elif mc["type"] == "text":
+                        content["text"] += mc["text"]
+                    else:
+                        print(f"Ignoring content with type {mc['type']}")
+            return content
+
+        # Identify the latest instruction from the user's message history
+        latest_content = identify_message_content(body["messages"][-1]["content"])
+        if latest_content["text"]:
+            latest_instruction = latest_content["text"]
+        if latest_content["images"]:
+            image_info = latest_content["images"]
+
+        # Identify contextual chat history
+        if len(body["messages"]) > 1:
+            for i in range(0, len(body["messages"]) - 1):
+                identified_content = identify_message_content(
+                    body["messages"][i]["content"]
+                )
+                if identified_content["images"]:
+                    image_info.extend(identified_content["images"])
+                if identified_content["text"]:
+                    chat_history_text += identified_content["text"]
+
+        # For every image, whether in the latest instruction or the chat history, generate a description
+        image_urls = []
+        image_query = ""
+        for i in range(len(image_info)):
+            await self.emit_event_safe(message="Analyzing image...")
+            image_query = DEAULT_IMAGE_VERBALIZER_PROMPT
+            if latest_instruction:
+                image_query += f"\n\nUse the following instruction from the user to further guide you: {latest_instruction}"
+            if chat_history_text:
+                image_query += f"\n\nAlso use the previous chat history to further guide you: {chat_history_text}"
+
+            # When the image URL comes in from Open WebUI, the image name is prefixed with data:image/png;base64,
+            # However, Ollama does not accept this prefix. Trimming this beginning bit before sending to Ollama
+            base64_image = image_info[i]['image_url']['url']
+            index_of_comma = base64_image.find(",")
+            if index_of_comma >=0:
+                base64_image = base64_image[index_of_comma + 1:]
+            image_urls.append(base64_image)
+
+        image_descriptions = ""
+        if image_urls:
+            messages = [
+                {
+                    "role": "user",
+                    "content": image_query,
+                    "images": image_urls
+                }
+            ]
+
+            # Here we are going to use the ollama client directly to describe the image
+            # For some reason, the LiteLLM client inside CrewAI was not properly forwarding the image over to Ollama
+            # Contributions welcome if you can fix this and make it backend provider agnostic :-)
+            index_of_slash = vision_model.find("/")
+            ollama_vision_model = vision_model
+            if index_of_slash >=0:
+                ollama_vision_model = vision_model[index_of_slash + 1:]
+            ollama_client = OllamaClient(
+                host=vision_url,
+            )
+            ollama_output = await ollama_client.chat(
+                model=ollama_vision_model,
+                messages = messages,
+            )
+            image_descriptions = ollama_output['message']['content']
+
+        # Start identifying research goals according to the image description
+        await self.emit_event_safe("Creating a research plan...")
+        identifier_goal = DEFAULT_ITEM_IDENTIFIER_GOAL
+        if latest_instruction:
+            identifier_goal += f"\n\nUse the following instruction from the user to further guide you: {latest_instruction}"
+        if chat_history_text:
+            identifier_goal += f"\n\nAlso use the previous chat history to further guide you: {chat_history_text}"
+        inputs = {"goal": identifier_goal, "image_description": image_descriptions, "item_limit": max_research_categories}
+        await identifier_crew.kickoff_async(inputs)
+
+        # Now that we've established our research targets, start a parallel async crew of researchers to tackle it
+        await self.emit_event_safe("Researching items...")
+        tasks = []
+        for task in identification_task.output.pydantic.items:
+            tasks.append(
+                {
+                    "item_name": task.item_name,
+                    "research_instructions": task.research_instructions,
+                }
+            )
+        
+        outputs = []
+        try:
+            if run_parallel_tasks:
+                outputs = await research_crew.kickoff_for_each_async(tasks)
+            else:
+                for task in tasks:
+                    outputs.append(await research_crew.kickoff_async(task))
+        except Exception as e:
+            logging.error(f"Error in research crew: {e}")
+            outputs = research_task.output.raw
+
+
+        # Create the final report
+        await self.emit_event_safe("Summing up findings...")
+        prompt = f"""Thoroughly answer the user's question, providing links to all URLs and documents used in your response. You may only use the following information to answer the question. 
+        If no reference URLs exist, do not fabricate them. If the following information does not have all the information you need to answer all aspects of the user question, then you may highlight those aspects. 
+        User query: {DEFAULT_INSTRUCTION} \n\n Image description:  {image_descriptions} \n\n Gathered information: {outputs}"""
+        final_output =  await anyio.to_thread.run_sync(lambda: llm.call(prompt))
+        return final_output
