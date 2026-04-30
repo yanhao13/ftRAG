@@ -1,0 +1,124 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"batch/v1","kind":"Job","metadata":{"annotations":{},"name":"chunk-ensemble","namespace":"default"},"spec":{"backoffLimit":1,"template":{"metadata":{"annotations":{"gke-gcsfuse/cpu-limit":"0","gke-gcsfuse/ephemeral-storage-limit":"0","gke-gcsfuse/memory-limit":"0","gke-gcsfuse/volumes":"true"}},"spec":{"containers":[{"args":["--output-dir=/mnt/merged/chunk_ltr_5000","--val-cache=/mnt/cache/ensemble/val_500_6000_13.joblib","--models-path=/mnt/cache/ensemble/models.joblib","--rank-gain011-path=/mnt/cache/ensemble/rank_gain011.joblib","--skip-eval"],"command":["python3","/app/chunk_best_ensemble.py"],"image":"us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:v2","imagePullPolicy":"Always","name":"ensemble","resources":{"limits":{"cpu":"4","ephemeral-storage":"5Gi","memory":"16Gi"},"requests":{"cpu":"4","ephemeral-storage":"5Gi","memory":"16Gi"}},"volumeMounts":[{"mountPath":"/mnt/cache","name":"cache","readOnly":true},{"mountPath":"/mnt/merged","name":"merged"}]}],"restartPolicy":"Never","serviceAccountName":"ftrag-sa","volumes":[{"csi":{"driver":"gcsfuse.csi.storage.gke.io","readOnly":true,"volumeAttributes":{"bucketName":"ftrag-cache-ml-cloud-hw2-250147","mountOptions":"implicit-dirs,file-cache:max-size-mb:2048"}},"name":"cache"},{"csi":{"driver":"gcsfuse.csi.storage.gke.io","volumeAttributes":{"bucketName":"ftrag-merged-ml-cloud-hw2-250147","mountOptions":"implicit-dirs"}},"name":"merged"}]}},"ttlSecondsAfterFinished":86400}}
+  creationTimestamp: "2026-04-30T06:17:46Z"
+  generation: 1
+  labels:
+    batch.kubernetes.io/controller-uid: b6c242ea-9cc9-4a6c-a035-542980902a14
+    batch.kubernetes.io/job-name: chunk-ensemble
+    controller-uid: b6c242ea-9cc9-4a6c-a035-542980902a14
+    job-name: chunk-ensemble
+  name: chunk-ensemble
+  namespace: default
+  resourceVersion: "1777530030149903002"
+  uid: b6c242ea-9cc9-4a6c-a035-542980902a14
+spec:
+  backoffLimit: 1
+  completionMode: NonIndexed
+  completions: 1
+  manualSelector: false
+  parallelism: 1
+  podReplacementPolicy: TerminatingOrFailed
+  selector:
+    matchLabels:
+      batch.kubernetes.io/controller-uid: b6c242ea-9cc9-4a6c-a035-542980902a14
+  suspend: false
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/volumes: "true"
+      labels:
+        batch.kubernetes.io/controller-uid: b6c242ea-9cc9-4a6c-a035-542980902a14
+        batch.kubernetes.io/job-name: chunk-ensemble
+        controller-uid: b6c242ea-9cc9-4a6c-a035-542980902a14
+        job-name: chunk-ensemble
+    spec:
+      containers:
+      - args:
+        - --output-dir=/mnt/merged/chunk_ltr_5000
+        - --val-cache=/mnt/cache/ensemble/val_500_6000_13.joblib
+        - --models-path=/mnt/cache/ensemble/models.joblib
+        - --rank-gain011-path=/mnt/cache/ensemble/rank_gain011.joblib
+        - --skip-eval
+        command:
+        - python3
+        - /app/chunk_best_ensemble.py
+        image: us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:v2
+        imagePullPolicy: Always
+        name: ensemble
+        resources:
+          limits:
+            cpu: "4"
+            ephemeral-storage: 5Gi
+            memory: 16Gi
+          requests:
+            cpu: "4"
+            ephemeral-storage: 5Gi
+            memory: 16Gi
+        securityContext:
+          capabilities:
+            drop:
+            - NET_RAW
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /mnt/cache
+          name: cache
+          readOnly: true
+        - mountPath: /mnt/merged
+          name: merged
+      dnsPolicy: ClusterFirst
+      restartPolicy: Never
+      schedulerName: default-scheduler
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccount: ftrag-sa
+      serviceAccountName: ftrag-sa
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        key: kubernetes.io/arch
+        operator: Equal
+        value: amd64
+      volumes:
+      - csi:
+          driver: gcsfuse.csi.storage.gke.io
+          readOnly: true
+          volumeAttributes:
+            bucketName: ftrag-cache-ml-cloud-hw2-250147
+            mountOptions: implicit-dirs,file-cache:max-size-mb:2048
+        name: cache
+      - csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: ftrag-merged-ml-cloud-hw2-250147
+            mountOptions: implicit-dirs
+        name: merged
+  ttlSecondsAfterFinished: 86400
+status:
+  completionTime: "2026-04-30T06:20:29Z"
+  conditions:
+  - lastProbeTime: "2026-04-30T06:20:29Z"
+    lastTransitionTime: "2026-04-30T06:20:29Z"
+    message: Reached expected number of succeeded pods
+    reason: CompletionsReached
+    status: "True"
+    type: SuccessCriteriaMet
+  - lastProbeTime: "2026-04-30T06:20:30Z"
+    lastTransitionTime: "2026-04-30T06:20:30Z"
+    message: Reached expected number of succeeded pods
+    reason: CompletionsReached
+    status: "True"
+    type: Complete
+  ready: 0
+  startTime: "2026-04-30T06:17:46Z"
+  succeeded: 1
+  terminating: 0
+  uncountedTerminatedPods: {}

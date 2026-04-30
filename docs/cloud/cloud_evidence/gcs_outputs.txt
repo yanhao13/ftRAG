@@ -1,0 +1,8 @@
+        0B  2026-04-30T06:20:10Z  gs://ftrag-merged-ml-cloud-hw2-250147/chunk_ltr_5000/
+
+gs://ftrag-merged-ml-cloud-hw2-250147/chunk_ltr_5000/:
+        0B  2026-04-30T06:20:10Z  gs://ftrag-merged-ml-cloud-hw2-250147/chunk_ltr_5000/
+   620.00B  2026-04-30T06:20:11Z  gs://ftrag-merged-ml-cloud-hw2-250147/chunk_ltr_5000/metrics_best_ensemble.json
+  28.26kiB  2026-04-30T06:20:10Z  gs://ftrag-merged-ml-cloud-hw2-250147/chunk_ltr_5000/validation_rankings_best_ensemble.csv
+  38.50kiB  2026-04-30T06:20:10Z  gs://ftrag-merged-ml-cloud-hw2-250147/chunk_ltr_5000/validation_rankings_best_ensemble.jsonl
+TOTAL: 5 objects, 68988 bytes (67.37kiB)

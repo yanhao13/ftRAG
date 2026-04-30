@@ -1,0 +1,75 @@
+Name:                        lora-merge
+Namespace:                   default
+Selector:                    batch.kubernetes.io/controller-uid=4da1fefd-a60b-4b2f-9910-f7e1b19366a6
+Labels:                      batch.kubernetes.io/controller-uid=4da1fefd-a60b-4b2f-9910-f7e1b19366a6
+                             batch.kubernetes.io/job-name=lora-merge
+                             controller-uid=4da1fefd-a60b-4b2f-9910-f7e1b19366a6
+                             job-name=lora-merge
+Annotations:                 <none>
+Parallelism:                 1
+Completions:                 1
+Completion Mode:             NonIndexed
+Suspend:                     false
+Backoff Limit:               1
+TTL Seconds After Finished:  86400
+Start Time:                  Thu, 30 Apr 2026 10:01:43 -0400
+Completed At:                Thu, 30 Apr 2026 10:04:46 -0400
+Duration:                    3m3s
+Pods Statuses:               0 Active (0 Ready) / 1 Succeeded / 0 Failed
+Pod Template:
+  Labels:           batch.kubernetes.io/controller-uid=4da1fefd-a60b-4b2f-9910-f7e1b19366a6
+                    batch.kubernetes.io/job-name=lora-merge
+                    controller-uid=4da1fefd-a60b-4b2f-9910-f7e1b19366a6
+                    job-name=lora-merge
+  Annotations:      gke-gcsfuse/cpu-limit: 0
+                    gke-gcsfuse/ephemeral-storage-limit: 0
+                    gke-gcsfuse/memory-limit: 0
+                    gke-gcsfuse/volumes: true
+  Service Account:  ftrag-sa
+  Containers:
+   merger:
+    Image:      us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:v2
+    Port:       <none>
+    Host Port:  <none>
+    Command:
+      python3
+      /app/merge_lora_offline.py
+    Args:
+      --base-model=unsloth/Llama-3.2-1B-Instruct
+      --adapter-path=/mnt/adapters/llama3_lora_reranker_colab/adapter
+      --merged-output=/mnt/merged/llama3_merged_colab
+      --dtype=float16
+    Limits:
+      cpu:                2
+      ephemeral-storage:  4Gi
+      memory:             8Gi
+    Requests:
+      cpu:                2
+      ephemeral-storage:  4Gi
+      memory:             8Gi
+    Environment:          <none>
+    Mounts:
+      /mnt/adapters from adapters (ro)
+      /mnt/merged from merged (rw)
+  Volumes:
+   adapters:
+    Type:              CSI (a Container Storage Interface (CSI) volume source)
+    Driver:            gcsfuse.csi.storage.gke.io
+    FSType:            
+    ReadOnly:          true
+    VolumeAttributes:      bucketName=ftrag-adapters-ml-cloud-hw2-250147
+                           mountOptions=implicit-dirs
+   merged:
+    Type:              CSI (a Container Storage Interface (CSI) volume source)
+    Driver:            gcsfuse.csi.storage.gke.io
+    FSType:            
+    ReadOnly:          false
+    VolumeAttributes:      bucketName=ftrag-merged-ml-cloud-hw2-250147
+                           mountOptions=implicit-dirs
+  Node-Selectors:      <none>
+  Tolerations:         kubernetes.io/arch=amd64:NoSchedule
+Events:
+  Type    Reason            Age    From            Message
+  ----    ------            ----   ----            -------
+  Normal  SuccessfulCreate  3m27s  job-controller  Created pod: lora-merge-wqdhf
+  Normal  Completed         24s    job-controller  Job completed

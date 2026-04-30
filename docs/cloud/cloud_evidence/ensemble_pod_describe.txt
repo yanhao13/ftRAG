@@ -1,0 +1,150 @@
+Name:             chunk-ensemble-5h259
+Namespace:        default
+Priority:         0
+Service Account:  ftrag-sa
+Node:             gk3-ftrag-cluster-pool-3-e416b168-7hxf/10.128.15.204
+Start Time:       Thu, 30 Apr 2026 02:17:46 -0400
+Labels:           batch.kubernetes.io/controller-uid=b6c242ea-9cc9-4a6c-a035-542980902a14
+                  batch.kubernetes.io/job-name=chunk-ensemble
+                  controller-uid=b6c242ea-9cc9-4a6c-a035-542980902a14
+                  job-name=chunk-ensemble
+                  topology.kubernetes.io/region=us-central1
+                  topology.kubernetes.io/zone=us-central1-b
+Annotations:      autopilot.gke.io/resource-adjustment:
+                    {"input":{"initContainers":[{"requests":{"cpu":"250m","ephemeral-storage":"5Gi","memory":"256Mi"},"name":"gke-gcsfuse-sidecar"}],"containe...
+                  autopilot.gke.io/warden-version: 35.15.0-gke.1
+                  gke-gcsfuse/cpu-limit: 0
+                  gke-gcsfuse/ephemeral-storage-limit: 0
+                  gke-gcsfuse/memory-limit: 0
+                  gke-gcsfuse/volumes: true
+Status:           Succeeded
+SeccompProfile:   RuntimeDefault
+IP:               10.41.0.17
+IPs:
+  IP:           10.41.0.17
+Controlled By:  Job/chunk-ensemble
+Init Containers:
+  gke-gcsfuse-sidecar:
+    Container ID:    containerd://080780300337a0125e570d5600425ac6825fcd92d7b0f55bec4f95baf6b5618c
+    Image:           us-central1-artifactregistry.gcr.io/gke-release/gke-release/gcs-fuse-csi-driver-sidecar-mounter:v1.22.0-gke.0@sha256:19690ea1ad7578861107b29aa7ecc2a61833edae69bac5a4ba9892ccaf4b0452
+    Image ID:        us-central1-artifactregistry.gcr.io/gke-release/gke-release/gcs-fuse-csi-driver-sidecar-mounter@sha256:19690ea1ad7578861107b29aa7ecc2a61833edae69bac5a4ba9892ccaf4b0452
+    Port:            <none>
+    Host Port:       <none>
+    SeccompProfile:  RuntimeDefault
+    Args:
+      --v=5
+    State:          Terminated
+      Reason:       Completed
+      Exit Code:    0
+      Started:      Thu, 30 Apr 2026 02:17:49 -0400
+      Finished:     Thu, 30 Apr 2026 02:20:25 -0400
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      ephemeral-storage:  5Gi
+    Requests:
+      cpu:                250m
+      ephemeral-storage:  5Gi
+      memory:             256Mi
+    Environment:
+      NATIVE_SIDECAR:  TRUE
+    Mounts:
+      /gcsfuse-buffer from gke-gcsfuse-buffer (rw)
+      /gcsfuse-cache from gke-gcsfuse-cache (rw)
+      /gcsfuse-tmp from gke-gcsfuse-tmp (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-mlc7z (ro)
+Containers:
+  ensemble:
+    Container ID:  containerd://50aab586ab5508647928afd665092df4da122315bc1d6f454985b9a7f1c66793
+    Image:         us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:v2
+    Image ID:      us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer@sha256:c43998bf6328b777ddea598580a827140a33ea8348a7b65a668e4417a3b6ecd7
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      python3
+      /app/chunk_best_ensemble.py
+    Args:
+      --output-dir=/mnt/merged/chunk_ltr_5000
+      --val-cache=/mnt/cache/ensemble/val_500_6000_13.joblib
+      --models-path=/mnt/cache/ensemble/models.joblib
+      --rank-gain011-path=/mnt/cache/ensemble/rank_gain011.joblib
+      --skip-eval
+    State:          Terminated
+      Reason:       Completed
+      Exit Code:    0
+      Started:      Thu, 30 Apr 2026 02:19:16 -0400
+      Finished:     Thu, 30 Apr 2026 02:20:12 -0400
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      cpu:                4
+      ephemeral-storage:  5Gi
+      memory:             16Gi
+    Requests:
+      cpu:                4
+      ephemeral-storage:  5Gi
+      memory:             16Gi
+    Environment:          <none>
+    Mounts:
+      /mnt/cache from cache (ro)
+      /mnt/merged from merged (rw)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-mlc7z (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   False 
+  Initialized                 True 
+  Ready                       False 
+  ContainersReady             False 
+  PodScheduled                True 
+Volumes:
+  gke-gcsfuse-tmp:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     
+    SizeLimit:  <unset>
+  gke-gcsfuse-buffer:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     
+    SizeLimit:  <unset>
+  gke-gcsfuse-cache:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     
+    SizeLimit:  <unset>
+  cache:
+    Type:              CSI (a Container Storage Interface (CSI) volume source)
+    Driver:            gcsfuse.csi.storage.gke.io
+    FSType:            
+    ReadOnly:          true
+    VolumeAttributes:      bucketName=ftrag-cache-ml-cloud-hw2-250147
+                           mountOptions=implicit-dirs,file-cache:max-size-mb:2048
+  merged:
+    Type:              CSI (a Container Storage Interface (CSI) volume source)
+    Driver:            gcsfuse.csi.storage.gke.io
+    FSType:            
+    ReadOnly:          false
+    VolumeAttributes:      bucketName=ftrag-merged-ml-cloud-hw2-250147
+                           mountOptions=implicit-dirs
+  kube-api-access-mlc7z:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 kubernetes.io/arch=amd64:NoSchedule
+                             node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason       Age    From                                   Message
+  ----     ------       ----   ----                                   -------
+  Normal   Scheduled    4m18s  gke.io/optimize-utilization-scheduler  Successfully assigned default/chunk-ensemble-5h259 to gk3-ftrag-cluster-pool-3-e416b168-7hxf
+  Warning  FailedMount  4m17s  kubelet                                MountVolume.SetUp failed for volume "kube-api-access-mlc7z" : failed to sync configmap cache: timed out waiting for the condition
+  Normal   Pulling      4m16s  kubelet                                Pulling image "us-central1-artifactregistry.gcr.io/gke-release/gke-release/gcs-fuse-csi-driver-sidecar-mounter:v1.22.0-gke.0@sha256:19690ea1ad7578861107b29aa7ecc2a61833edae69bac5a4ba9892ccaf4b0452"
+  Normal   Pulled       4m16s  kubelet                                Successfully pulled image "us-central1-artifactregistry.gcr.io/gke-release/gke-release/gcs-fuse-csi-driver-sidecar-mounter:v1.22.0-gke.0@sha256:19690ea1ad7578861107b29aa7ecc2a61833edae69bac5a4ba9892ccaf4b0452" in 724ms (724ms including waiting). Image size: 41661890 bytes.
+  Normal   Created      4m16s  kubelet                                Container created
+  Normal   Started      4m16s  kubelet                                Container started
+  Normal   Pulling      4m15s  kubelet                                Pulling image "us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:v2"
+  Normal   Pulled       2m49s  kubelet                                Successfully pulled image "us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:v2" in 1m25.911s (1m25.911s including waiting). Image size: 5382862947 bytes.
+  Normal   Created      2m49s  kubelet                                Container created
+  Normal   Started      2m49s  kubelet                                Container started
+  Normal   Killing      105s   kubelet                                Stopping container gke-gcsfuse-sidecar

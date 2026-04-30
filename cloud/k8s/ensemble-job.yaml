@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chunk-ensemble
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+    spec:
+      serviceAccountName: ftrag-sa
+      restartPolicy: Never
+      containers:
+        - name: ensemble
+          image: us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:v2
+          imagePullPolicy: Always
+          command: ["python3", "/app/chunk_best_ensemble.py"]
+          args:
+            - "--output-dir=/mnt/merged/chunk_ltr_5000"
+            - "--val-cache=/mnt/cache/ensemble/val_500_6000_13.joblib"
+            - "--models-path=/mnt/cache/ensemble/models.joblib"
+            - "--rank-gain011-path=/mnt/cache/ensemble/rank_gain011.joblib"
+            - "--skip-eval"
+          resources:
+            requests:
+              cpu: "4"
+              memory: "16Gi"
+              ephemeral-storage: "5Gi"
+            limits:
+              cpu: "4"
+              memory: "16Gi"
+              ephemeral-storage: "5Gi"
+          volumeMounts:
+            - name: cache
+              mountPath: /mnt/cache
+              readOnly: true
+            - name: merged
+              mountPath: /mnt/merged
+      volumes:
+        - name: cache
+          csi:
+            driver: gcsfuse.csi.storage.gke.io
+            readOnly: true
+            volumeAttributes:
+              bucketName: ftrag-cache-ml-cloud-hw2-250147
+              mountOptions: "implicit-dirs,file-cache:max-size-mb:2048"
+        - name: merged
+          csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: ftrag-merged-ml-cloud-hw2-250147
+              mountOptions: "implicit-dirs"

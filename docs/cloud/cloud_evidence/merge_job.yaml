@@ -1,0 +1,123 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"batch/v1","kind":"Job","metadata":{"annotations":{},"name":"lora-merge","namespace":"default"},"spec":{"backoffLimit":1,"template":{"metadata":{"annotations":{"gke-gcsfuse/cpu-limit":"0","gke-gcsfuse/ephemeral-storage-limit":"0","gke-gcsfuse/memory-limit":"0","gke-gcsfuse/volumes":"true"}},"spec":{"containers":[{"args":["--base-model=unsloth/Llama-3.2-1B-Instruct","--adapter-path=/mnt/adapters/llama3_lora_reranker_colab/adapter","--merged-output=/mnt/merged/llama3_merged_colab","--dtype=float16"],"command":["python3","/app/merge_lora_offline.py"],"image":"us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:v2","imagePullPolicy":"Always","name":"merger","resources":{"limits":{"cpu":"2","ephemeral-storage":"4Gi","memory":"8Gi"},"requests":{"cpu":"2","ephemeral-storage":"4Gi","memory":"8Gi"}},"volumeMounts":[{"mountPath":"/mnt/adapters","name":"adapters","readOnly":true},{"mountPath":"/mnt/merged","name":"merged"}]}],"restartPolicy":"Never","serviceAccountName":"ftrag-sa","volumes":[{"csi":{"driver":"gcsfuse.csi.storage.gke.io","readOnly":true,"volumeAttributes":{"bucketName":"ftrag-adapters-ml-cloud-hw2-250147","mountOptions":"implicit-dirs"}},"name":"adapters"},{"csi":{"driver":"gcsfuse.csi.storage.gke.io","volumeAttributes":{"bucketName":"ftrag-merged-ml-cloud-hw2-250147","mountOptions":"implicit-dirs"}},"name":"merged"}]}},"ttlSecondsAfterFinished":86400}}
+  creationTimestamp: "2026-04-30T14:01:43Z"
+  generation: 1
+  labels:
+    batch.kubernetes.io/controller-uid: 4da1fefd-a60b-4b2f-9910-f7e1b19366a6
+    batch.kubernetes.io/job-name: lora-merge
+    controller-uid: 4da1fefd-a60b-4b2f-9910-f7e1b19366a6
+    job-name: lora-merge
+  name: lora-merge
+  namespace: default
+  resourceVersion: "1777557886578623007"
+  uid: 4da1fefd-a60b-4b2f-9910-f7e1b19366a6
+spec:
+  backoffLimit: 1
+  completionMode: NonIndexed
+  completions: 1
+  manualSelector: false
+  parallelism: 1
+  podReplacementPolicy: TerminatingOrFailed
+  selector:
+    matchLabels:
+      batch.kubernetes.io/controller-uid: 4da1fefd-a60b-4b2f-9910-f7e1b19366a6
+  suspend: false
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/volumes: "true"
+      labels:
+        batch.kubernetes.io/controller-uid: 4da1fefd-a60b-4b2f-9910-f7e1b19366a6
+        batch.kubernetes.io/job-name: lora-merge
+        controller-uid: 4da1fefd-a60b-4b2f-9910-f7e1b19366a6
+        job-name: lora-merge
+    spec:
+      containers:
+      - args:
+        - --base-model=unsloth/Llama-3.2-1B-Instruct
+        - --adapter-path=/mnt/adapters/llama3_lora_reranker_colab/adapter
+        - --merged-output=/mnt/merged/llama3_merged_colab
+        - --dtype=float16
+        command:
+        - python3
+        - /app/merge_lora_offline.py
+        image: us-central1-docker.pkg.dev/ml-cloud-hw2-250147/ftrag/ftrag-trainer:v2
+        imagePullPolicy: Always
+        name: merger
+        resources:
+          limits:
+            cpu: "2"
+            ephemeral-storage: 4Gi
+            memory: 8Gi
+          requests:
+            cpu: "2"
+            ephemeral-storage: 4Gi
+            memory: 8Gi
+        securityContext:
+          capabilities:
+            drop:
+            - NET_RAW
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /mnt/adapters
+          name: adapters
+          readOnly: true
+        - mountPath: /mnt/merged
+          name: merged
+      dnsPolicy: ClusterFirst
+      restartPolicy: Never
+      schedulerName: default-scheduler
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccount: ftrag-sa
+      serviceAccountName: ftrag-sa
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        key: kubernetes.io/arch
+        operator: Equal
+        value: amd64
+      volumes:
+      - csi:
+          driver: gcsfuse.csi.storage.gke.io
+          readOnly: true
+          volumeAttributes:
+            bucketName: ftrag-adapters-ml-cloud-hw2-250147
+            mountOptions: implicit-dirs
+        name: adapters
+      - csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: ftrag-merged-ml-cloud-hw2-250147
+            mountOptions: implicit-dirs
+        name: merged
+  ttlSecondsAfterFinished: 86400
+status:
+  completionTime: "2026-04-30T14:04:46Z"
+  conditions:
+  - lastProbeTime: "2026-04-30T14:04:46Z"
+    lastTransitionTime: "2026-04-30T14:04:46Z"
+    message: Reached expected number of succeeded pods
+    reason: CompletionsReached
+    status: "True"
+    type: SuccessCriteriaMet
+  - lastProbeTime: "2026-04-30T14:04:46Z"
+    lastTransitionTime: "2026-04-30T14:04:46Z"
+    message: Reached expected number of succeeded pods
+    reason: CompletionsReached
+    status: "True"
+    type: Complete
+  ready: 0
+  startTime: "2026-04-30T14:01:43Z"
+  succeeded: 1
+  terminating: 0
+  uncountedTerminatedPods: {}

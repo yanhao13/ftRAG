@@ -1,0 +1,12 @@
+        0B  2026-04-30T14:03:46Z  gs://ftrag-merged-ml-cloud-hw2-250147/llama3_merged_colab/
+
+gs://ftrag-merged-ml-cloud-hw2-250147/llama3_merged_colab/:
+        0B  2026-04-30T14:03:46Z  gs://ftrag-merged-ml-cloud-hw2-250147/llama3_merged_colab/
+   3.74kiB  2026-04-30T14:04:16Z  gs://ftrag-merged-ml-cloud-hw2-250147/llama3_merged_colab/chat_template.jinja
+   974.00B  2026-04-30T14:03:46Z  gs://ftrag-merged-ml-cloud-hw2-250147/llama3_merged_colab/config.json
+   198.00B  2026-04-30T14:04:16Z  gs://ftrag-merged-ml-cloud-hw2-250147/llama3_merged_colab/merge_manifest.json
+   2.30GiB  2026-04-30T14:04:15Z  gs://ftrag-merged-ml-cloud-hw2-250147/llama3_merged_colab/model.safetensors
+   454.00B  2026-04-30T14:04:16Z  gs://ftrag-merged-ml-cloud-hw2-250147/llama3_merged_colab/special_tokens_map.json
+  16.41MiB  2026-04-30T14:04:16Z  gs://ftrag-merged-ml-cloud-hw2-250147/llama3_merged_colab/tokenizer.json
+  49.45kiB  2026-04-30T14:04:16Z  gs://ftrag-merged-ml-cloud-hw2-250147/llama3_merged_colab/tokenizer_config.json
+TOTAL: 9 objects, 2488915662 bytes (2.32GiB)

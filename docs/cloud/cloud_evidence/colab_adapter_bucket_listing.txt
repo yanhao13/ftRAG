@@ -1,0 +1,11 @@
+gs://ftrag-adapters-ml-cloud-hw2-250147/llama3_lora_reranker_colab/:
+   1.83kiB  2026-04-30T13:31:59Z  gs://ftrag-adapters-ml-cloud-hw2-250147/llama3_lora_reranker_colab/metrics.json
+
+gs://ftrag-adapters-ml-cloud-hw2-250147/llama3_lora_reranker_colab/adapter/:
+   4.98kiB  2026-04-30T13:31:59Z  gs://ftrag-adapters-ml-cloud-hw2-250147/llama3_lora_reranker_colab/adapter/README.md
+   767.00B  2026-04-30T13:31:59Z  gs://ftrag-adapters-ml-cloud-hw2-250147/llama3_lora_reranker_colab/adapter/adapter_config.json
+   3.27MiB  2026-04-30T13:32:02Z  gs://ftrag-adapters-ml-cloud-hw2-250147/llama3_lora_reranker_colab/adapter/adapter_model.safetensors
+   454.00B  2026-04-30T13:31:59Z  gs://ftrag-adapters-ml-cloud-hw2-250147/llama3_lora_reranker_colab/adapter/special_tokens_map.json
+  16.41MiB  2026-04-30T13:32:02Z  gs://ftrag-adapters-ml-cloud-hw2-250147/llama3_lora_reranker_colab/adapter/tokenizer.json
+  53.39kiB  2026-04-30T13:31:59Z  gs://ftrag-adapters-ml-cloud-hw2-250147/llama3_lora_reranker_colab/adapter/tokenizer_config.json
+TOTAL: 7 objects, 20697619 bytes (19.74MiB)

@@ -1,0 +1,33 @@
+2026-04-30T07:15:47Z ===== START overnight run =====
+2026-04-30T07:15:47Z STEP 1: recreating private cluster ftrag-cluster in us-central1 (~7 min)
+2026-04-30T07:23:51Z STEP 2: getting kubectl credentials
+2026-04-30T07:23:51Z STEP 3: applying ServiceAccount
+2026-04-30T07:23:52Z STEP 4: applying L4 on-demand train job
+2026-04-30T07:23:53Z STEP 5: waiting up to 12 min for train pod to schedule
+2026-04-30T07:24:23Z   schedule check 1: state=Pending
+2026-04-30T07:24:54Z   schedule check 2: state=Pending
+2026-04-30T07:25:24Z   schedule check 3: state=Pending
+2026-04-30T07:25:55Z   schedule check 4: state=Pending
+2026-04-30T07:26:25Z   schedule check 5: state=Pending
+2026-04-30T07:26:56Z   schedule check 6: state=Pending
+2026-04-30T07:27:26Z   schedule check 7: state=Pending
+2026-04-30T07:27:56Z   schedule check 8: state=Pending
+2026-04-30T07:28:27Z   schedule check 9: state=Pending
+2026-04-30T07:28:57Z   schedule check 10: state=Pending
+2026-04-30T07:29:27Z   schedule check 11: state=Pending
+2026-04-30T07:29:57Z   schedule check 12: state=Pending
+2026-04-30T07:30:28Z   schedule check 13: state=Pending
+2026-04-30T07:30:58Z   schedule check 14: state=Pending
+2026-04-30T07:31:28Z   schedule check 15: state=Pending
+2026-04-30T07:31:59Z   schedule check 16: state=Pending
+2026-04-30T07:32:29Z   schedule check 17: state=Pending
+2026-04-30T07:32:59Z   schedule check 18: state=Pending
+2026-04-30T07:33:29Z   schedule check 19: state=Pending
+2026-04-30T07:34:00Z   schedule check 20: state=Pending
+2026-04-30T07:34:30Z   schedule check 21: state=Pending
+2026-04-30T07:35:00Z   schedule check 22: state=Pending
+2026-04-30T07:35:30Z   schedule check 23: state=Pending
+2026-04-30T07:36:01Z   schedule check 24: state=Pending
+2026-04-30T07:36:01Z FAIL step 5: pod did not schedule within 12 min (likely GPU capacity)
+2026-04-30T07:36:01Z TEARDOWN: deleting cluster ftrag-cluster
+2026-04-30T07:40:04Z TEARDOWN: complete
